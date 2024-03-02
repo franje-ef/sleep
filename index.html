@@ -81,7 +81,7 @@
     </div>
 
 <script>
-    var testMode = true;
+    var testMode = false;
     var localMode = false;
     var notificationsEnabled = false;
 
@@ -128,7 +128,7 @@
         var resultRow = document.getElementById("resultRow");
         resultRow.innerHTML = "";
 
-        var hoursToAdd = [0, 2, 5, 7, 12];
+        var hoursToAdd = [0, 2.5, 5.5, 10, 12];
         var naps = ["Morning Nap", "Main Nap", "Power Nap", "Bed time"];
 
         for (var i = 0; i < hoursToAdd.length; i++) {
@@ -138,7 +138,8 @@
                 calculatedTime.setMinutes(calculatedTime.getMinutes() + 1);
                 calculatedTime.setSeconds(calculatedTime.getSeconds() + hoursToAdd[i] * 2);
             } else {
-                calculatedTime.setHours(calculatedTime.getHours() + hoursToAdd[i]);
+                var milliseconds = hoursToAdd[i] * 60 * 60 * 1000;
+                calculatedTime.setTime(calculatedTime.getTime() + milliseconds);
             }
 
             var cell = resultRow.insertCell(i);
@@ -154,7 +155,7 @@
         var alertTime = new Date(time);
 
         if (!testMode)
-            alertTime.setMinutes(alertTime.getMinutes() - 10); // Adjusted for 10 minutes earlier
+            alertTime.setMinutes(alertTime.getMinutes() - 15); // Adjusted for 10 minutes earlier
 
         var timeDiff = alertTime.getTime() - now.getTime();
 
