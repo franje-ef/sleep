@@ -3,47 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Push Notification Example</title>
+    <title>Time Calculator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #calculator {
+            text-align: center;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Push Notification Example</h1>
+    <div id="calculator">
+        <h2>Time Calculator</h2>
+        <label for="inputTime">Enter a time:</label>
+        <input type="time" id="inputTime" required>
+        <button onclick="selectNow()">Now</button>
+        <button onclick="calculateTimes()">OK</button>
+        
 
-    <script>
-        // Check if the browser supports service workers
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(function (registration) {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(function (error) {
-                    console.error('Service Worker registration failed:', error);
-                });
+        <table>
+            <thead>
+                <tr>
+                    <th>Time Selected</th>
+                    <th>Morning Nap</th>
+                    <th>Main Nap</th>
+                    <th>Power Nap</th>
+                    <th>Bed Time</th>
+                </tr>
+            </thead>
+            <tbody id="resultTableBody">
+                <tr id="resultRow"></tr>
+            </tbody>
+        </table>
+    </div>
 
-            // Request permission for push notifications
-            Notification.requestPermission().then(function (permission) {
-                if (permission === 'granted') {
-                    console.log('Notification permission granted.');
-                }
+<script>
+    var testMode = true;
+    var localMode = false;
+    var notificationsEnabled = false;
+
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(function (registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(function (error) {
+                console.error('Service Worker registration failed:', error);
             });
 
-            // Schedule a push notification every minute
-            setInterval(function () {
-                // You can customize the notification content here
-                const notificationOptions = {
-                    body: 'This is a push notification!',
-                    icon: 'path/to/icon.png',
-                };
+        // Request permission for push notifications
+        Notification.requestPermission().then(function (permission) {
+            if (permission === 'granted') {
+                console.log('Notification permission granted.');
 
-                // Display the notification
-                navigator.serviceWorker.ready.then(function (registration) {
-                    registration.showNotification('Push Notification', notificationOptions);
-                });
-            }, 60000); // 60,000 milliseconds = 1 minute
-        } else {
-            console.log('Push notifications are not supported in this browser.');
+                notificationsEnabled = true;
+            }
+        });
+
+    } else {
+        console.log('Push notifications are not supported in this browser.');
+    }
+
+    function calculateTimes() {
+        var inputTime = document.getElementById("inputTime").value;
+        updateTable(inputTime);
+    }
+
+    function selectNow() {
+        var now = new Date();
+        var formattedNow = now.getHours() + ":" + (now.getMinutes() < 10 ? "0" : "") + now.getMinutes();
+        document.getElementById("inputTime").value = formattedNow;
+        updateTable(formattedNow);
+    }
+
+    function updateTable(inputTime) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const day = today.getDate();
+        var originalTime = new Date(`${year}-${month}-${day} ${inputTime}`);
+        var resultRow = document.getElementById("resultRow");
+        resultRow.innerHTML = "";
+
+        var hoursToAdd = [0, 2, 5, 7, 12];
+        var naps = ["Morning Nap", "Main Nap", "Power Nap", "Bed time"];
+
+        for (var i = 0; i < hoursToAdd.length; i++) {
+            var calculatedTime = new Date(originalTime);
+
+            if (testMode) {
+                calculatedTime.setMinutes(calculatedTime.getMinutes() + 1);
+                calculatedTime.setSeconds(calculatedTime.getSeconds() + hoursToAdd[i] * 2);
+            } else {
+                calculatedTime.setHours(calculatedTime.getHours() + hoursToAdd[i]);
+            }
+
+            var cell = resultRow.insertCell(i);
+            cell.innerHTML = calculatedTime.toLocaleTimeString();
+
+            if(i > 0)
+                scheduleAlert(calculatedTime, naps[i-1]);
         }
-    </script>
+    }
+
+    function scheduleAlert(time, nap) {
+        var now = new Date();
+        var alertTime = new Date(time);
+
+        if (!testMode)
+            alertTime.setMinutes(alertTime.getMinutes() - 10); // Adjusted for 10 minutes earlier
+
+        var timeDiff = alertTime.getTime() - now.getTime();
+
+        if (timeDiff > 0) {
+            setTimeout(function() {
+                    const notificationOptions = {
+                        body: 'Go to bed!',
+                        icon: 'path/to/icon.png',
+                    };
+
+                    if (localMode) {
+                        window.alert(nap);
+                    } else {
+                        navigator.serviceWorker.ready.then(function(registration) {
+                            registration.showNotification(nap, notificationOptions);
+                        });
+                    }
+
+                },
+                timeDiff);
+        }
+    }
+</script>
 
 </body>
 </html>
