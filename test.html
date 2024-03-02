@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Example</title>
+</head>
+<body>
+
+    <h1>Push Notification Example</h1>
+
+    <script>
+        // Check if the browser supports service workers
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function (registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(function (error) {
+                    console.error('Service Worker registration failed:', error);
+                });
+
+            // Request permission for push notifications
+            Notification.requestPermission().then(function (permission) {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                }
+            });
+
+            // Schedule a push notification every minute
+            setInterval(function () {
+                // You can customize the notification content here
+                const notificationOptions = {
+                    body: 'This is a push notification!',
+                    icon: 'path/to/icon.png',
+                };
+
+                // Display the notification
+                navigator.serviceWorker.ready.then(function (registration) {
+                    registration.showNotification('Push Notification', notificationOptions);
+                });
+            }, 60000); // 60,000 milliseconds = 1 minute
+        } else {
+            console.log('Push notifications are not supported in this browser.');
+        }
+    </script>
+
+</body>
+</html>
